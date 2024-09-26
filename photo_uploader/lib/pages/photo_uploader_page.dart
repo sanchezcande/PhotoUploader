@@ -7,17 +7,19 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class PhotoUploaderPage extends StatefulWidget {
-  const PhotoUploaderPage({super.key}); 
+  const PhotoUploaderPage({super.key});
 
   @override
-  PhotoUploaderPageState createState() => PhotoUploaderPageState(); 
+  PhotoUploaderPageState createState() => PhotoUploaderPageState();
 }
 
 class PhotoUploaderPageState extends State<PhotoUploaderPage> {
-  final CameraService _cameraService = CameraService(); 
+  final CameraService _cameraService = CameraService();
   XFile? _webImage;
   File? _image;
   bool _isPhotoTaken = false;
+  bool _isCameraInitialized =
+      false; 
 
   @override
   void initState() {
@@ -26,7 +28,10 @@ class PhotoUploaderPageState extends State<PhotoUploaderPage> {
 
   Future<void> _openCamera() async {
     await _cameraService.initializeCamera();
-    setState(() {});
+    setState(() {
+      _isCameraInitialized =
+          true; 
+    });
   }
 
   Future<void> _takePhoto() async {
@@ -37,7 +42,8 @@ class PhotoUploaderPageState extends State<PhotoUploaderPage> {
         _isPhotoTaken = true;
       });
     } else {
-      final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
+      final pickedFile =
+          await ImagePicker().pickImage(source: ImageSource.camera);
       setState(() {
         if (pickedFile != null) {
           _image = File(pickedFile.path);
@@ -79,58 +85,78 @@ class PhotoUploaderPageState extends State<PhotoUploaderPage> {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
+    const double aspectRatio = 4 / 3; 
+
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Photo Uploader'),
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            SizedBox( 
-              width: mediaQuery.size.width * 0.7,
-              height: mediaQuery.size.height * 0.5,
-              child: _isPhotoTaken
-                  ? PhotoDisplay(
-                      imagePath: kIsWeb ? _webImage?.path : _image?.path,
-                      isWeb: kIsWeb,
-                    )
-                  : CameraView(cameraController: _cameraService.cameraController),
-            ),
-            const SizedBox(height: 20),
-            if (!_isPhotoTaken)
-              ElevatedButton(
-                onPressed: _openCamera,
-                child: const Text('Open Camera'),
-              ),
-            if (_isPhotoTaken)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() {
-                        _isPhotoTaken = false;
-                      });
-                      _openCamera();
-                    },
-                    child: const Text('Retake Photo'),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
+              FractionallySizedBox(
+                widthFactor: 0.7,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: size.height *
+                        0.5, // Limitar el alto al 50% de la pantalla
                   ),
-                  const SizedBox(width: 20),
-                  ElevatedButton(
-                    onPressed: _uploadPhoto,
-                    child: const Text('Upload Photo'),
+                  child: AspectRatio(
+                    aspectRatio:
+                        aspectRatio, 
+                    child: _isPhotoTaken
+                        ? PhotoDisplay(
+                            imagePath: kIsWeb ? _webImage?.path : _image?.path,
+                            isWeb: kIsWeb,
+                          )
+                        : _isCameraInitialized
+                            ? CameraView(
+                                cameraController:
+                                    _cameraService.cameraController,
+                              )
+                            : const Center(
+                                child: Text(
+                                    'Camera not initialized or photo not taken')),
                   ),
-                ],
+                ),
               ),
-            if (!_isPhotoTaken)
-              ElevatedButton(
-                onPressed: _takePhoto,
-                child: const Text('Take Photo'),
-              ),
-          ],
+              const SizedBox(height: 20),
+              if (!_isCameraInitialized)
+                ElevatedButton(
+                  onPressed: _openCamera,
+                  child: const Text('Open Camera'),
+                ),
+              if (_isCameraInitialized && !_isPhotoTaken)
+                ElevatedButton(
+                  onPressed: _takePhoto,
+                  child: const Text('Take Photo'),
+                ),
+              if (_isPhotoTaken)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _isPhotoTaken = false;
+                        });
+                        _openCamera();
+                      },
+                      child: const Text('Retake Photo'),
+                    ),
+                    const SizedBox(width: 20),
+                    ElevatedButton(
+                      onPressed: _uploadPhoto,
+                      child: const Text('Upload Photo'),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ),
     );

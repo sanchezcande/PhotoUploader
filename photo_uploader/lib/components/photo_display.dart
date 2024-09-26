@@ -5,7 +5,7 @@ class PhotoDisplay extends StatelessWidget {
   final String? imagePath;
   final bool isWeb;
 
-  const PhotoDisplay({super.key, required this.imagePath, required this.isWeb}); 
+  const PhotoDisplay({super.key, required this.imagePath, required this.isWeb});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +14,13 @@ class PhotoDisplay extends StatelessWidget {
     }
 
     return isWeb
-        ? Image.network(imagePath!)  
-        : Image.file(File(imagePath!));  
+        ? Image.network(
+            imagePath!,
+            fit: BoxFit.cover, 
+          )
+        : Image.file(
+            File(imagePath!),
+            fit: BoxFit.cover,
+          );
   }
 }

@@ -1,19 +1,42 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * import {onCall} from "firebase-functions/v2/https";
- * import {onDocumentWritten} from "firebase-functions/v2/firestore";
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
+import * as functions from "firebase-functions";
+import * as admin from "firebase-admin";
 
-import {onRequest} from "firebase-functions/v2/https";
-import * as logger from "firebase-functions/logger";
+admin.initializeApp();
 
-// Start writing functions
-// https://firebase.google.com/docs/functions/typescript
+const db = admin.firestore();
+const bucket = admin.storage().bucket();
 
-// export const helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+export const uploadImage = functions.https.onRequest(async (req, res) => {
+  try {
+    // Verifica si el método es POST
+    if (req.method !== "POST") {
+      res.status(405).send("Método no permitido");
+      return;
+    }
+
+    const file = req.body.file;
+    const fileName = req.body.fileName;
+
+    if (!file || !fileName) {
+      res.status(400).send("Faltan parámetros: file o fileName");
+      return;
+    }
+
+    const fileBuffer = Buffer.from(file, "base64");
+    const fileUpload = bucket.file(fileName);
+    await fileUpload.save(fileBuffer);
+
+    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileUpload.name}`;
+
+    await db.collection("photos").add({
+      fileName: fileName,
+      url: publicUrl,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    res.status(200).send({ message: "Imagen subida exitosamente", url: publicUrl });
+  } catch (error) {
+    console.error("Error al subir la imagen:", error);
+    res.status(500).send("Error interno del servidor");
+  }
+});

@@ -1,26 +1,21 @@
-library default;
-import 'package:firebase_data_connect/firebase_data_connect.dart';
-import 'dart:convert';
+class MyDefaultConnector {
+  static dynamic connectorConfig = {
+    'region': 'us-central1',
+    'project': 'photo_uploader',
+    'type': 'default',
+  };
 
+  MyDefaultConnector({required this.dataConnect});
 
-
-class DefaultConnector {
-  
-
-  static ConnectorConfig connectorConfig = ConnectorConfig(
-    'us-central1',
-    'default',
-    'photo_uploader',
-  );
-
-  DefaultConnector({required this.dataConnect});
-  static DefaultConnector get instance {
-    return DefaultConnector(
-        dataConnect: FirebaseDataConnect.instanceFor(
-            connectorConfig: connectorConfig,
-            sdkType: CallerSDKType.generated));
+  static MyDefaultConnector get instance {
+    return MyDefaultConnector(
+      dataConnect: _instanceForDataConnect(),
+    );
   }
 
-  FirebaseDataConnect dataConnect;
-}
+  static dynamic _instanceForDataConnect() {
+    return {};
+  }
 
+  final dynamic dataConnect;
+}

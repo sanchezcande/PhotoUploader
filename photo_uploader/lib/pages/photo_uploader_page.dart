@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
-import '../components/camera_view.dart';
 import '../components/photo_display.dart';
 import '../services/camera_service.dart';
-import 'dart:io';
+import '../services/firebase_service.dart'; 
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class PhotoUploaderPage extends StatefulWidget {
@@ -15,8 +13,8 @@ class PhotoUploaderPage extends StatefulWidget {
 
 class PhotoUploaderPageState extends State<PhotoUploaderPage> {
   final CameraService _cameraService = CameraService();
-  XFile? _webImage;
-  File? _image;
+  final FirebaseService _firebaseService = FirebaseService(); 
+  String? _imagePath;
   bool _isPhotoTaken = false;
   bool _isCameraInitialized = false;
 
@@ -26,52 +24,70 @@ class PhotoUploaderPageState extends State<PhotoUploaderPage> {
   }
 
   Future<void> _openCamera() async {
-    await _cameraService.initializeCamera();
+    await _cameraService.initializeCamera(context); 
     setState(() {
       _isCameraInitialized = true;
     });
   }
 
   Future<void> _takePhoto() async {
-    if (kIsWeb) {
-      final image = await _cameraService.takePhoto();
+    final imagePath = await _cameraService.takePhoto(context); 
+    if (imagePath != null) {
       setState(() {
-        _webImage = image;
+        _imagePath = imagePath; 
         _isPhotoTaken = true;
       });
     } else {
-      final pickedFile =
-          await ImagePicker().pickImage(source: ImageSource.camera);
       setState(() {
-        if (pickedFile != null) {
-          _image = File(pickedFile.path);
-          _isPhotoTaken = true;
-        }
+        _isPhotoTaken = false;
       });
     }
   }
 
   Future<void> _uploadPhoto() async {
-    if (_isPhotoTaken) {
-      await Future.delayed(const Duration(seconds: 2));
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Success'),
-            content: const Text('Photo uploaded successfully!'),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('OK'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-            ],
-          );
-        },
-      );
+    if (_isPhotoTaken && _imagePath != null) {
+      try {
+        String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+        await _firebaseService.uploadImage(_imagePath!, fileName);
+        if (!mounted) return;
+
+        // Mostrar éxito
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Success'),
+              content: const Text('Photo uploaded successfully!'),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      } catch (e) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('Error'),
+              content: Text('Failed to upload photo: $e'),
+              actions: <Widget>[
+                TextButton(
+                  child: const Text('OK'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
     }
   }
 
@@ -88,76 +104,75 @@ class PhotoUploaderPageState extends State<PhotoUploaderPage> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-        appBar: AppBar(
-          title: const Text('Photo Uploader'),
-        ),
-        body: SingleChildScrollView(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  FractionallySizedBox(
-                    widthFactor: 0.7,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: size.height * 0.5,
-                      ),
-                      child: AspectRatio(
-                        aspectRatio: aspectRatio,
-                        child: _isPhotoTaken
-                            ? PhotoDisplay(
-                                imagePath:
-                                    kIsWeb ? _webImage?.path : _image?.path,
-                                isWeb: kIsWeb,
-                              )
-                            : _isCameraInitialized
-                                ? CameraView(
-                                    cameraController:
-                                        _cameraService.cameraController,
-                                  )
-                                : const Center(
-                                    child: Text(
-                                        'Camera not initialized or photo not taken')),
-                      ),
+      appBar: AppBar(
+        title: const Text('Photo Uploader'),
+      ),
+      body: SingleChildScrollView(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                FractionallySizedBox(
+                  widthFactor: 0.7,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: size.height * 0.5,
+                    ),
+                    child: AspectRatio(
+                      aspectRatio: aspectRatio,
+                      child: _isPhotoTaken
+                          ? PhotoDisplay(
+                              imagePath: _imagePath,
+                              isWeb: kIsWeb,
+                            )
+                          : _isCameraInitialized
+                              ? const Center(
+                                  child: Text('Camera ready! Please take a photo.'),
+                                )
+                              : const Center(
+                                  child: Text(
+                                      'Camera not initialized or photo not taken')),
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  if (!_isCameraInitialized)
-                    ElevatedButton(
-                      onPressed: _openCamera,
-                      child: const Text('Open Camera'),
-                    ),
-                  if (_isCameraInitialized && !_isPhotoTaken)
-                    ElevatedButton(
-                      onPressed: _takePhoto,
-                      child: const Text('Take Photo'),
-                    ),
-                  if (_isPhotoTaken)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _isPhotoTaken = false;
-                            });
-                            _openCamera();
-                          },
-                          child: const Text('Retake Photo'),
-                        ),
-                        const SizedBox(width: 20),
-                        ElevatedButton(
-                          onPressed: _uploadPhoto,
-                          child: const Text('Upload Photo'),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 20),
+                if (!_isCameraInitialized)
+                  ElevatedButton(
+                    onPressed: _openCamera,
+                    child: const Text('Open Camera'),
+                  ),
+                if (_isCameraInitialized && !_isPhotoTaken)
+                  ElevatedButton(
+                    onPressed: _takePhoto,
+                    child: const Text('Take Photo'),
+                  ),
+                if (_isPhotoTaken)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _isPhotoTaken = false;
+                          });
+                          _openCamera();
+                        },
+                        child: const Text('Retake Photo'),
+                      ),
+                      const SizedBox(width: 20),
+                      ElevatedButton(
+                        onPressed: _uploadPhoto,
+                        child: const Text('Upload Photo'),
+                      ),
+                    ],
+                  ),
+              ],
             ),
           ),
-        ));
+        ),
+      ),
+    );
   }
 }

@@ -1,31 +1,47 @@
-import 'package:camera/camera.dart';
+import 'package:camerawesome/camerawesome_plugin.dart';
+import 'package:flutter/material.dart';
+import 'package:logger/logger.dart'; 
 
 class CameraService {
-  CameraController? _cameraController;
+  bool isCameraInitialized = false;
+  var logger = Logger();
 
-  Future<void> initializeCamera() async {
-    final cameras = await availableCameras();
-    if (cameras.isEmpty) {
-      return;
-    }
-    _cameraController = CameraController(
-      cameras[0],
-      ResolutionPreset.high,
-      enableAudio: false,  
+  Future<void> initializeCamera(BuildContext context) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CameraAwesomeBuilder.awesome(
+          saveConfig: SaveConfig.photo(),
+          onMediaTap: (mediaCapture) async {
+            mediaCapture.captureRequest.when(
+              single: (singleCapture) {
+                if (singleCapture.file != null) {
+                  logger.i("Media captured at: ${singleCapture.file?.path}");
+                } else {
+                  logger.w("No media captured");
+                }
+              },
+              multiple: (multipleCapture) {
+                logger.w("Multiple captures not supported in this implementation");
+              },
+            );
+          },
+        ),
+      ),
     );
-    await _cameraController?.initialize();
+    isCameraInitialized = true;
   }
 
-  Future<XFile?> takePhoto() async {
-    if (_cameraController != null && _cameraController!.value.isInitialized) {
-      return await _cameraController!.takePicture();
+  // Método para tomar una foto
+  Future<String?> takePhoto(BuildContext context) async {
+    if (!isCameraInitialized) {
+      await initializeCamera(context);
     }
     return null;
   }
 
-  CameraController? get cameraController => _cameraController;
-
+  // Método para liberar recursos
   void dispose() {
-    _cameraController?.dispose();
+    // Lógica para liberar recursos si fuera necesario
   }
 }

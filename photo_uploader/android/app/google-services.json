@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "386278000599",
+    "firebase_url": "https://photouploader-913d7-default-rtdb.firebaseio.com",
+    "project_id": "photouploader-913d7",
+    "storage_bucket": "photouploader-913d7.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:386278000599:android:79d033ad6319e27d04ed92",
+        "android_client_info": {
+          "package_name": "com.photoUploader.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBaN5GDQFH7NoNcoRKT-1hw8GU7-9Z6YHQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

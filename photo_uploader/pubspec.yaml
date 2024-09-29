@@ -30,7 +30,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  camerawesome: ^2.0.0-dev.1
+  camerawesome: ^1.4.0
   riverpod: ^2.3.6
   image_picker: ^0.8.9
   camera_web: ^0.3.5  
@@ -39,10 +39,14 @@ dependencies:
   cloud_firestore: ^5.4.3
   firebase_storage: ^12.3.2
   logger: ^1.1.0
+  path_provider: ^2.0.11
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+
+dependency_overrides:
+  carousel_slider: ^5.0.0 
 
 dev_dependencies:
   flutter_test:
